@@ -1,0 +1,55 @@
+@model List<Codexly.Models.TaskItem>
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My to do list</title>
+
+    <!-- Your CSS -->
+    <link rel="stylesheet" href="~/css/todolist-new.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <header class="header">
+        <div class="header-left">Codexly</div>
+        <nav class="header-nav">
+            <a asp-controller="Home" asp-action="Index" class="nav-link">Home</a>
+            <a href="#" class="nav-link">About</a>
+            <a href="#" class="nav-link">Contact</a>
+            <a asp-controller="Account" asp-action="SignUp" class="sign-up-btn">Sign up</a>
+        </nav>
+    </header>
+
+    <main class="page">
+        <h1 class="title">My to do list</h1>
+
+        <!-- Add new plan -->
+        <div class="new-plan">
+            <form asp-action="Create" method="post">
+                <input name="Title" id="new-plan-input" type="text"
+                       placeholder="Add a new plan" autocomplete="off" required />
+                <button type="submit" id="add-plan-btn">Add</button>
+            </form>
+        </div>
+
+        <!-- Tasks container (JS will populate DB tasks dynamically) -->
+        <section id="plans" class="plans"></section>
+    </main>
+
+    <!-- JS -->
+    <script>
+        const serverTasks = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+    </script>
+    <script src="~/js/todolist-new.js"></script>
+</body>
+</html>
