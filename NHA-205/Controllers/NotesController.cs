@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Codexly.Data;
 using Codexly.Models;
 
 namespace Codexly.Controllers
@@ -9,62 +8,82 @@ namespace Codexly.Controllers
     [Authorize]
     public class NotesController : Controller
     {
-        private readonly ApplicationDbContext _db;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly Repository<Note> _noteRepo;
+        private readonly UserManager<User> _userManager;
 
-        public NotesController(ApplicationDbContext db, UserManager<IdentityUser> userManager)
+        public NotesController(Repository<Note> noteRepo, UserManager<User> userManager)
         {
-            _db = db;
+            _noteRepo = noteRepo;
             _userManager = userManager;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             var userId = _userManager.GetUserId(User);
-            var notes = _db.Notes.Where(n => n.UserId.Equals(userId)).OrderByDescending(n => n.UpdatedAt).ToList();
-            return View(notes);
+
+            var options = new QueryOptions<Note>
+            {
+                Where = n => n.UserId == userId,
+                OrderBy = n => n.UpdatedAt
+            };
+
+            var notes = await _noteRepo.GetAllByIdAsync(userId, nameof(Note.UserId), options);
+
+            return View(notes.OrderByDescending(n => n.UpdatedAt));
         }
 
         [HttpPost]
-        public IActionResult Add()
+        public async Task<IActionResult> Add()
         {
             var userId = _userManager.GetUserId(User);
-            var note = new NoteItem
+
+            var note = new Note
             {
                 Title = "Untitled",
-                Body = "",
-                UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                ContentMarkdown = "",
+                UpdatedAt = DateTime.UtcNow,
                 UserId = userId
             };
-            _db.Notes.Add(note);
-            _db.SaveChanges();
+
+            await _noteRepo.AddAsync(note);
+
             return RedirectToAction("Index");
         }
 
         [HttpPost]
-        public IActionResult Update(int id, string Title, string Body)
+        public async Task<IActionResult> Update(int id, string Title, string Body)
         {
             var userId = _userManager.GetUserId(User);
-            var note = _db.Notes.FirstOrDefault(n => n.Id == id);
-            if (note == null || note.UserId != userId) return Unauthorized();
-            note.Title = Title ?? note.Title;
-            note.Body = Body;
-            note.UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            _db.SaveChanges();
+
+            var options = new QueryOptions<Note>();
+            var note = await _noteRepo.GetByIdAsync(id, options);
+
+            if (note == null || note.UserId != userId)
+                return Unauthorized();
+
+            note.Title = string.IsNullOrWhiteSpace(Title) ? note.Title : Title;
+            note.ContentMarkdown = Body;
+            note.UpdatedAt = DateTime.UtcNow;
+
+            await _noteRepo.UpdateAsync(note);
+
             return RedirectToAction("Index");
         }
 
         [HttpPost]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
             var userId = _userManager.GetUserId(User);
-            var note = _db.Notes.FirstOrDefault(n => n.Id == id);
-            if (note == null || note.UserId != userId) return Unauthorized();
-            _db.Notes.Remove(note);
-            _db.SaveChanges();
+
+            var options = new QueryOptions<Note>();
+            var note = await _noteRepo.GetByIdAsync(id, options);
+
+            if (note == null || note.UserId != userId)
+                return Unauthorized();
+
+            await _noteRepo.DeleteAsync(id);
+
             return RedirectToAction("Index");
         }
     }
 }
-
-

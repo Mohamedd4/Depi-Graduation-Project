@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Codexly.Services;
+using Codexly.Data;
 using Codexly.Models;
 
 namespace Codexly.Controllers
@@ -9,121 +9,124 @@ namespace Codexly.Controllers
     [Authorize]
     public class TasksController : Controller
     {
-        private readonly ITaskService _service;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly Repository<Todo> _tasks;
+        private readonly UserManager<User> _userManager;
 
-        public TasksController(ITaskService service, UserManager<IdentityUser> userManager)
+        public TasksController(ApplicationDbContext context, UserManager<User> userManager)
         {
-            _service = service;
+            _tasks = new Repository<Todo>(context);
             _userManager = userManager;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             var userId = _userManager.GetUserId(User);
-            var tasks = _service.GetTasksForUser(userId);
-            return View(tasks);
+
+            var options = new QueryOptions<Todo>
+            {
+                Where = t => t.UserId.Equals(userId)
+            };
+
+            var all = await _tasks.GetAllAsync(options);
+            return View(all);
         }
 
+        [HttpGet]
         public IActionResult Create()
         {
             return View();
         }
 
         [HttpPost]
-        public IActionResult ToggleDone(int id)
+        public async Task<IActionResult> Create(string Title)
         {
-            var userId = _userManager.GetUserId(User);
-            var task = _service.GetById(id);
-
-            if (task == null || task.UserId != userId)
-                return Unauthorized();
-
-            task.IsDone = !task.IsDone; // Flip the boolean
-            _service.Update(task);
-
-            return RedirectToAction("Index");
-        }
-
-        [HttpPost]
-        public IActionResult Create(string Title)
-        {
-            Console.WriteLine($"[DEBUG] Create POST called. Title: '{Title}'");
             if (string.IsNullOrWhiteSpace(Title))
             {
-                TempData["Error"] = "You must enter a task name";
-                Console.WriteLine("[DEBUG] Title is empty or whitespace.");
+                TempData["Error"] = "Task name is required";
                 return RedirectToAction("Index");
             }
 
             var userId = _userManager.GetUserId(User);
-            Console.WriteLine($"[DEBUG] UserId: {userId}");
 
-            var newTask = new TaskItem
+            var item = new TaskItem
             {
                 Title = Title,
                 Description = "",
                 IsDone = false,
                 UserId = userId
             };
-            Console.WriteLine($"[DEBUG] TaskItem to add: Title={newTask.Title}, UserId={newTask.UserId}");
 
-            _service.Add(newTask);
+            await _tasks.AddAsync(item);
 
-            TempData["Success"] = "Task added successfully!";
+            TempData["Success"] = "Task added!";
             return RedirectToAction("Index");
         }
 
-        public IActionResult Edit(int id)
+        public async Task<IActionResult> Edit(int id)
         {
-            var userId = _userManager.GetUserId(User);
-            var item = _service.GetById(id);
+            var item = await _tasks.GetByIdAsync(id, new QueryOptions<TaskItem>());
+            if (item == null) return NotFound();
 
-            if (item == null || item.UserId != userId)
-                return Unauthorized();
+            var userId = _userManager.GetUserId(User);
+            if (item.UserId != userId) return Unauthorized();
 
             return View(item);
         }
 
         [HttpPost]
-        public IActionResult Edit(TaskItem item)
+        public async Task<IActionResult> Edit(TaskItem item)
         {
             var userId = _userManager.GetUserId(User);
-            if (item.UserId != userId)
-                return Unauthorized();
+            if (item.UserId != userId) return Unauthorized();
 
             if (ModelState.IsValid)
             {
-                _service.Update(item);
-                TempData["Success"] = "Task updated successfully!";
+                await _tasks.UpdateAsync(item);
+                TempData["Success"] = "Task updated!";
                 return RedirectToAction("Index");
             }
 
             return View(item);
         }
 
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var userId = _userManager.GetUserId(User);
-            var item = _service.GetById(id);
+            var item = await _tasks.GetByIdAsync(id, new QueryOptions<TaskItem>());
+            if (item == null) return NotFound();
 
-            if (item == null || item.UserId != userId)
-                return Unauthorized();
+            var userId = _userManager.GetUserId(User);
+            if (item.UserId != userId) return Unauthorized();
 
             return View(item);
         }
 
         [HttpPost]
-        public IActionResult DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var item = await _tasks.GetByIdAsync(id, new QueryOptions<TaskItem>());
+            if (item == null) return NotFound();
+
             var userId = _userManager.GetUserId(User);
-            var item = _service.GetById(id);
+            if (item.UserId != userId) return Unauthorized();
 
-            if (item == null || item.UserId != userId)
-                return Unauthorized();
+            await _tasks.DeleteAsync(id);
 
-            _service.Delete(id);
-            TempData["Success"] = "Task deleted successfully!";
+            TempData["Success"] = "Task deleted!";
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ToggleDone(int id)
+        {
+            var item = await _tasks.GetByIdAsync(id, new QueryOptions<TaskItem>());
+            if (item == null) return NotFound();
+
+            var userId = _userManager.GetUserId(User);
+            if (item.UserId != userId) return Unauthorized();
+
+            item.IsDone = !item.IsDone;
+            await _tasks.UpdateAsync(item);
+
             return RedirectToAction("Index");
         }
     }
