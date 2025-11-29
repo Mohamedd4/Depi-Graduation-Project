@@ -5,7 +5,7 @@ namespace Codexly.Models;
 
 public partial class Note
 {
-    public string NoteId { get; set; }
+    public Guid NoteId { get; set; }
 
     public string UserId { get; set; }
 

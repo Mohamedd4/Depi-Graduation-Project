@@ -1,6 +1,5 @@
 using Codexly.Data;
-using Codexly.Services;
-using Microsoft.AspNetCore.Identity;
+using Codexly.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Codexly
@@ -18,12 +17,11 @@ namespace Codexly
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             // Disable email confirmation for easier testing
-            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = false)
-                .AddEntityFrameworkStores<ApplicationDbContext>();
+            //builder.Services.AddDefaultIdentity<User>(options => options.SignIn.RequireConfirmedAccount = false)
+            //    .AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddControllersWithViews();
 
             // Register TaskService
-            builder.Services.AddScoped<ITaskService, TaskService>();
 
             var app = builder.Build();
 
@@ -39,11 +37,11 @@ namespace Codexly
                 app.UseHsts();
             }
 
-            using (var scope = app.Services.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.Database.Migrate();
-            }
+            //using (var scope = app.Services.CreateScope())
+            //{
+            //    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            //    db.Database.Migrate();
+            //}
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
@@ -55,7 +53,6 @@ namespace Codexly
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
-            app.MapRazorPages();
 
             app.Run();
         }

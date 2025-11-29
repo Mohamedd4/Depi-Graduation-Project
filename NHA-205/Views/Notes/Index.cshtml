@@ -1,4 +1,4 @@
-@model List<Codexly.Models.NoteItem>
+@model List<Codexly.Models.Note>
 @{
     Layout = null;
     var active = Model.FirstOrDefault();
@@ -36,8 +36,8 @@
             <ul id="notes-list" class="notes-list" aria-label="Notes list">
                 @foreach (var note in Model)
                 {
-                    var firstLine = (note.Body ?? string.Empty).Split('\n').FirstOrDefault() ?? string.Empty;
-                    <li data-id="@note.Id" data-title="@note.Title" data-body="@note.Body">
+                    var firstLine = (note.ContentMarkdown ?? string.Empty).Split('\n').FirstOrDefault() ?? string.Empty;
+                    <li data-id="@note.NoteId" data-title="@note.Title" data-body="@note.ContentMarkdown">
                         <span class="note-title">@note.Title</span>
                         <span class="note-snippet">@firstLine</span>
                     </li>
@@ -47,12 +47,12 @@
 
         <section class="editor">
             <form id="updateForm" asp-action="Update" method="post">
-                <input type="hidden" id="note-id" name="id" value="@(active?.Id ?? 0)" />
+                <input type="hidden" id="note-id" name="id" value="@(active?.NoteId ?? Guid.Empty)" />
                 <input id="note-title" name="Title" class="title-input" type="text" placeholder="Add Title .........." value="@active?.Title" />
                 <div class="editor-split">
                     <div class="editor-pane">
                         <div class="pane-header">Editor</div>
-                        <textarea id="note-body" name="Body" class="body-input" placeholder="Space to write down my notes">@active?.Body</textarea>
+                        <textarea id="note-body" name="Body" class="body-input" placeholder="Space to write down my notes">@active?.ContentMarkdown</textarea>
                     </div>
                     <div class="preview-pane">
                         <div class="pane-header">Preview</div>
@@ -68,7 +68,7 @@
                 </div>
             </form>
             <form id="deleteForm" asp-action="Delete" method="post" style="display:none;">
-                <input type="hidden" id="delete-id" name="id" value="@(active?.Id ?? 0)" />
+                <input type="hidden" id="delete-id" name="id" value="@(active?.NoteId ?? Guid.Empty)" />
             </form>
         </section>
     </main>

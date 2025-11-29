@@ -27,7 +27,7 @@ namespace Codexly.Controllers
                 Where = t => t.UserId.Equals(userId)
             };
 
-            var all = await _tasks.GetAllAsync(options);
+            var all = await _tasks.GetAllAsync();
             return View(all);
         }
 
@@ -48,12 +48,12 @@ namespace Codexly.Controllers
 
             var userId = _userManager.GetUserId(User);
 
-            var item = new TaskItem
+            var item = new Todo
             {
                 Title = Title,
                 Description = "",
-                IsDone = false,
-                UserId = userId
+                IsCompleted = false,
+                UserId = Guid.Parse(userId)
             };
 
             await _tasks.AddAsync(item);
@@ -64,20 +64,20 @@ namespace Codexly.Controllers
 
         public async Task<IActionResult> Edit(int id)
         {
-            var item = await _tasks.GetByIdAsync(id, new QueryOptions<TaskItem>());
+            var item = await _tasks.GetByIdAsync(id, new QueryOptions<Todo>());
             if (item == null) return NotFound();
 
             var userId = _userManager.GetUserId(User);
-            if (item.UserId != userId) return Unauthorized();
+            if (!item.UserId.Equals(userId)) return Unauthorized();
 
             return View(item);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Edit(TaskItem item)
+        public async Task<IActionResult> Edit(Todo item)
         {
             var userId = _userManager.GetUserId(User);
-            if (item.UserId != userId) return Unauthorized();
+            if (!item.UserId.Equals(userId)) return Unauthorized();
 
             if (ModelState.IsValid)
             {
@@ -91,11 +91,11 @@ namespace Codexly.Controllers
 
         public async Task<IActionResult> Delete(int id)
         {
-            var item = await _tasks.GetByIdAsync(id, new QueryOptions<TaskItem>());
+            var item = await _tasks.GetByIdAsync(id, new QueryOptions<Todo>());
             if (item == null) return NotFound();
 
             var userId = _userManager.GetUserId(User);
-            if (item.UserId != userId) return Unauthorized();
+            if (!item.UserId.Equals(userId)) return Unauthorized();
 
             return View(item);
         }
@@ -103,11 +103,11 @@ namespace Codexly.Controllers
         [HttpPost]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var item = await _tasks.GetByIdAsync(id, new QueryOptions<TaskItem>());
+            var item = await _tasks.GetByIdAsync(id, new QueryOptions<Todo>());
             if (item == null) return NotFound();
 
             var userId = _userManager.GetUserId(User);
-            if (item.UserId != userId) return Unauthorized();
+            if (!item.UserId.Equals(userId)) return Unauthorized();
 
             await _tasks.DeleteAsync(id);
 
@@ -118,13 +118,13 @@ namespace Codexly.Controllers
         [HttpPost]
         public async Task<IActionResult> ToggleDone(int id)
         {
-            var item = await _tasks.GetByIdAsync(id, new QueryOptions<TaskItem>());
+            var item = await _tasks.GetByIdAsync(id, new QueryOptions<Todo>());
             if (item == null) return NotFound();
 
             var userId = _userManager.GetUserId(User);
-            if (item.UserId != userId) return Unauthorized();
+            if (!item.UserId.Equals(userId)) return Unauthorized();
 
-            item.IsDone = !item.IsDone;
+            item.IsCompleted = !item.IsCompleted;
             await _tasks.UpdateAsync(item);
 
             return RedirectToAction("Index");

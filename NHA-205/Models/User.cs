@@ -4,9 +4,15 @@ using System.Collections.Generic;
 
 namespace Codexly.Models;
 
-public partial class User : IdentityUser<string>
+public partial class User : IdentityUser<Guid>
 {
 
+
+    public Guid UserId
+    {
+        get => base.Id;
+        set => base.Id = value;
+    }
     public string Name { get; set; } = null!;
 
     public string? ProfileImageUrl { get; set; }
